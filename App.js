@@ -1,10 +1,10 @@
-"use client"
-
+// Removed "use client"
 import "react-native-gesture-handler" // Must be at the top
+import React from "react"
 import { NavigationContainer } from "@react-navigation/native"
-import { createStackNavigator, TransitionPresets } from "@react-navigation/stack"
+import { createStackNavigator } from "@react-navigation/stack"
 import { AuthProvider, useAuth } from "./AuthContext"
-import { View, ActivityIndicator, StyleSheet, Text } from "react-native"
+import { View, ActivityIndicator, StyleSheet, Text, Animated } from "react-native"
 import { enableScreens } from "react-native-screens"
 
 // Enable react-native-screens for better performance
@@ -14,10 +14,9 @@ enableScreens()
 const disableAnimations = {
   animationEnabled: false,
   gestureEnabled: false,
-  ...TransitionPresets.DefaultTransition,
   transitionSpec: {
-    open: { animation: 'timing', config: { duration: 0 } },
-    close: { animation: 'timing', config: { duration: 0 } },
+    open: { animation: "timing", config: { duration: 1000 } },
+    close: { animation: "timing", config: { duration: 1000 } },
   },
   cardStyleInterpolator: () => ({}),
 }
@@ -30,23 +29,45 @@ import HomeScreen from "./screens/HomeScreen"
 import NewsScreen from "./screens/NewsScreen"
 import BiddingScreen from "./screens/BiddingScreen"
 import ProfileScreen from "./screens/ProfileScreen"
+import CartScreen from "./screens/CartScreen" // Import CartScreen
 
 // Import your NavBarLayout
 import NavBarLayout from "./Layout/NavbarLayout"
 
 const Stack = createStackNavigator()
 
+// Enhanced Loading Component
+const LoadingScreen = ({ message = "Loading..." }) => {
+  const [fadeAnim] = React.useState(new Animated.Value(0))
+
+  React.useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 3000,
+      useNativeDriver: true,
+    }).start()
+  }, [fadeAnim])
+
+  return (
+    <View style={styles.loadingContainer}>
+      <Animated.View style={[styles.loadingContent, { opacity: fadeAnim }]}>
+        <ActivityIndicator size="large" color="#2E6A2E" />
+        <Text style={styles.loadingText}>{message}</Text>
+      </Animated.View>
+    </View>
+  )
+}
+
 // --- Authentication Stack ---
-// Screens accessible when the user is NOT logged in
 function AuthStack() {
   return (
     <Stack.Navigator
-      screenOptions={{ 
+      screenOptions={{
         headerShown: false,
         ...disableAnimations,
-        cardStyle: { backgroundColor: 'transparent' },
+        cardStyle: { backgroundColor: "transparent" },
       }}
-      initialRouteName="SignIn" // SignIn screen will be the first screen when app opens
+      initialRouteName="SignIn"
     >
       <Stack.Screen name="SignIn" component={SignInScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
@@ -54,26 +75,22 @@ function AuthStack() {
   )
 }
 
-// --- Main App Stack (User-facing screens with NavBarLayout) ---
-// Each screen here will be wrapped by NavBarLayout
+// --- Main App Stack ---
 function MainAppStack() {
   return (
     <Stack.Navigator
-      screenOptions={{ 
+      screenOptions={{
         headerShown: false,
         ...disableAnimations,
-        cardStyle: { backgroundColor: 'transparent' },
+        cardStyle: { backgroundColor: "transparent" },
       }}
-      initialRouteName="Welcome" // Welcome screen will be first after login
+      initialRouteName="Welcome"
     >
       {/* Welcome screen is the first screen after login */}
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
 
       {/* Screens that use the NavBarLayout */}
-      <Stack.Screen 
-        name="Home"
-options={{ ...disableAnimations }}
-      >
+      <Stack.Screen name="Home">
         {(props) => (
           <NavBarLayout>
             <HomeScreen {...props} />
@@ -81,10 +98,7 @@ options={{ ...disableAnimations }}
         )}
       </Stack.Screen>
 
-      <Stack.Screen 
-        name="News"
-options={{ ...disableAnimations }}
-      >
+      <Stack.Screen name="News">
         {(props) => (
           <NavBarLayout>
             <NewsScreen {...props} />
@@ -92,10 +106,7 @@ options={{ ...disableAnimations }}
         )}
       </Stack.Screen>
 
-      <Stack.Screen 
-        name="Bidding"
-options={{ ...disableAnimations }}
-      >
+      <Stack.Screen name="Bidding">
         {(props) => (
           <NavBarLayout>
             <BiddingScreen {...props} />
@@ -103,10 +114,16 @@ options={{ ...disableAnimations }}
         )}
       </Stack.Screen>
 
-      <Stack.Screen 
-        name="Profile"
-options={{ ...disableAnimations }}
-      >
+      <Stack.Screen name="Cart">
+        {/* Removed the extra space here */}
+        {(props) => (
+          <NavBarLayout>
+            <CartScreen {...props} />
+          </NavBarLayout>
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="Profile">
         {(props) => (
           <NavBarLayout>
             <ProfileScreen {...props} />
@@ -114,15 +131,12 @@ options={{ ...disableAnimations }}
         )}
       </Stack.Screen>
 
-      {/* Placeholder for 'My Account' screen if needed in user menu */}
-      <Stack.Screen 
-        name="Account"
-options={{ ...disableAnimations }}
-      >
+      {/* Account Screen */}
+      <Stack.Screen name="Account">
         {(props) => (
           <NavBarLayout>
             <View style={styles.accountScreen}>
-              <Text>My Account Details</Text>
+              <Text style={styles.accountText}>My Account Details</Text>
             </View>
           </NavBarLayout>
         )}
@@ -131,23 +145,19 @@ options={{ ...disableAnimations }}
   )
 }
 
-// --- Root Navigator (Conditional Rendering) ---
+// --- Root Navigator ---
 function RootNavigator() {
   const { isLoggedIn, isLoading } = useAuth()
 
   if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2E6A2E" />
-      </View>
-    )
+    return <LoadingScreen message="Checking authentication..." />
   }
 
   return (
     <NavigationContainer
       theme={{
         colors: {
-          background: '#F8F9FA',
+          background: "#F8F9FA",
         },
       }}
     >
@@ -172,10 +182,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FFFCF3",
   },
+  loadingContent: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#2E6A2E",
+    fontWeight: "600",
+    textAlign: "center",
+  },
   accountScreen: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",
+    padding: 20,
+  },
+  accountText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#2E6A2E",
   },
 })

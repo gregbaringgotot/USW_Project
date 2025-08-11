@@ -1,65 +1,42 @@
-"use client"
-
-import React, { useMemo, useCallback } from "react"
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native"
+// Removed "use client"
+import React, { useCallback, useState } from "react"
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from "react-native"
 import { useNavigation, useRoute } from "@react-navigation/native"
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"
 
 const { width } = Dimensions.get("window")
 
-// Memoized tab configuration to prevent re-creation on every render
+// Memoized tab configuration
 const tabs = [
-  {
-    name: "Home",
-    icon: "home",
-    route: "Home",
-  },
-  {
-    name: "News",
-    icon: "newspaper",
-    route: "News",
-  },
-  {
-    name: "Bidding",
-    icon: "gavel",
-    route: "Bidding",
-  },
-  {
-    name: "Profile",
-    icon: "account",
-    route: "Profile",
-  },
+  { name: "Home", icon: "home", route: "Home" },
+  { name: "News", icon: "newspaper", route: "News" },
+  { name: "Bidding", icon: "gavel", route: "Bidding" },
+  { name: "Cart", icon: "cart", route: "Cart" },
+  { name: "Profile", icon: "account", route: "Profile" },
 ]
 
 function NavBarLayout({ children }) {
   const navigation = useNavigation()
   const route = useRoute()
+  const [isNavigating, setIsNavigating] = useState(false)
 
-  // Immediate navigation function with zero delay
-  const navigateTo = useCallback((screenName) => {
-    // Use push for immediate navigation without any transition
-    if (route.name !== screenName) {
-      navigation.replace(screenName)
-    }
-  }, [navigation, route.name])
+  // Optimized navigation function
+  const navigateTo = useCallback(
+    (screenName) => {
+      if (route.name === screenName || isNavigating) return
 
-  // Memoized indicator position calculation
-  const indicatorPosition = useMemo(() => {
-    const activeIndex = tabs.findIndex((tab) => tab.route === route.name)
-    if (activeIndex !== -1) {
-      const tabWidth = width / tabs.length
-      return activeIndex * tabWidth + tabWidth / 2 - 20 // 20 is half of indicator width
-    }
-    return 0
-  }, [route.name])
+      setIsNavigating(true)
 
-  // Memoized icon rendering function using only MaterialCommunityIcons
-  const renderIcon = useCallback((tab, isActive) => {
-    const iconColor = isActive ? "#2E6A2E" : "#888"
-    const iconSize = 22
-
-    return <MaterialCommunityIcons name={tab.icon} size={iconSize} color={iconColor} />
-  }, [])
+      try {
+        navigation.replace(screenName)
+      } catch (error) {
+        console.warn("Navigation error:", error)
+      } finally {
+        setTimeout(() => setIsNavigating(false), 100)
+      }
+    },
+    [navigation, route.name, isNavigating],
+  )
 
   return (
     <View style={styles.container}>
@@ -68,37 +45,37 @@ function NavBarLayout({ children }) {
 
       {/* Fixed Bottom Navigation */}
       <View style={styles.bottomNavContainer}>
-        {/* Static Indicator Line */}
-        <View
-          style={[
-            styles.indicator,
-            {
-              left: indicatorPosition,
-            },
-          ]}
-        />
+        {/* Removed the global indicator */}
+        {/* <View style={[styles.indicator, { left: indicatorPosition }]} /> */}
 
         <View style={styles.bottomNav}>
-          {tabs.map((tab, index) => {
+          {tabs.map((tab) => {
             const isActive = route.name === tab.route
             return (
               <TouchableOpacity
                 key={tab.name}
                 style={styles.tabButton}
                 onPress={() => navigateTo(tab.route)}
-                activeOpacity={1}
-                delayPressIn={0}
-                delayPressOut={0}
-                delayLongPress={0}
+                activeOpacity={0.7}
+                disabled={isNavigating}
               >
                 <View style={[styles.iconContainer, isActive && styles.activeIconContainer]}>
-                  {renderIcon(tab, isActive)}
+                  <MaterialCommunityIcons name={tab.icon} size={22} color={isActive ? "#2E6A2E" : "#888"} />
                 </View>
                 <Text style={[styles.tabLabel, isActive && styles.activeTabLabel]}>{tab.name}</Text>
+                {/* NEW: Indicator below the text */}
+                {isActive && <View style={styles.activeTextBottomIndicator} />}
               </TouchableOpacity>
             )
           })}
         </View>
+
+        {/* Loading overlay */}
+        {isNavigating && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="small" color="#2E6A2E" />
+          </View>
+        )}
       </View>
     </View>
   )
@@ -111,7 +88,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingBottom: 0, // Remove any bottom padding since navbar is fixed
+    paddingBottom: 0,
   },
   bottomNavContainer: {
     position: "absolute",
@@ -126,18 +103,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 15,
-    paddingTop: 8,
-    paddingBottom: 25, // Safe area padding
   },
-  indicator: {
-    position: "absolute",
-    top: 0,
-    width: 40,
-    height: 3,
-    backgroundColor: "#2E6A2E",
-    borderRadius: 2,
-    zIndex: 1,
-  },
+  // Removed the global indicator style
+  // indicator: { ... },
   bottomNav: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -151,6 +119,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 4,
+    position: "relative", // Needed for absolute positioning of the new indicator
   },
   iconContainer: {
     width: 36,
@@ -174,7 +143,28 @@ const styles = StyleSheet.create({
     color: "#2E6A2E",
     fontWeight: "700",
   },
+  // NEW STYLE for the indicator below the text
+  activeTextBottomIndicator: {
+    position: "absolute",
+    bottom: 0, // Position at the very bottom of the tabButton
+    width: "100%", // Adjust width as needed, or make it dynamic based on text width
+    height: 2,
+    backgroundColor: "#2E6A2E",
+    borderRadius: 2,
+
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+  },
 })
 
-// Export memoized component for better performance
 export default React.memo(NavBarLayout)
