@@ -6,7 +6,7 @@ import ProductManagement from './components/ProductManagement';
 import SalesAnalytics from './components/SalesAnalytics';
 import CustomerManagement from './components/CustomerManagement';
 
-import Sidebar from './components/Sidebar';
+import Sidebar from './Layout/Sidebar';
 import { auth } from './firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import NewsManagement from './components/NewsManagement';

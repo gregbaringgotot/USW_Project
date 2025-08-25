@@ -112,7 +112,7 @@ export default function NewsScreen({ navigation }) {
           ))}
         </View>
       </ScrollView>
-
+                    
       {/* News Articles */}
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
